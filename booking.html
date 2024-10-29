@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width">
+    <title>Book & Pay</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="container">
+            <div id="branding">			
+                <h1><span class="highlight">Parking</span> Succorer</h1>
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="about.html">About</a></li>
+                    <li class="current"><a href="booking.html">Book & Pay</a></li>
+                    <li><a href="invoice.html">Invoices</a></li>
+                    <button type="button" class="loginbtn" onclick="window.location.href = 'login.html';">Login</button>
+                    <button type="button" class="signupbtn" onclick="window.location.href = 'signup.html';">Signup</button>
+                </ul>
+            </nav>		  
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="section-1 box">
+        <h1>Book Your Parking Spot</h1>
+        <form id="bookingForm">
+            <label for="slot">Select Parking Slot:</label>
+            <select id="slot" name="slot">
+                <option value="1">Slot 1</option>
+                <option value="2">Slot 2</option>
+                <option value="3">Slot 3</option>
+            </select>
+            <label for="startTime">Start Time:</label>
+            <input type="datetime-local" id="startTime" name="startTime" required>
+            <label for="endTime">End Time:</label>
+            <input type="datetime-local" id="endTime" name="endTime" required>
+            <button type="submit">Pay Now</button>
+        </form>
+
+        <h2>Scan RFID Card to Enter</h2>
+        <button onclick="simulateRFIDScan()">Scan RFID Card</button>
+        <p id="rfidMessage"></p>
+    </main>
+
+    <!-- Footer -->
+    <div class="footer">
+        <a href="https://www.facebook.com/" class="fa fa-facebook"></a>
+        <a href="https://twitter.com/" class="fa fa-twitter"></a>
+        <a href="https://www.google.com/" class="fa fa-google"></a>
+    </div>
+
+    <script src="scripts.js"></script>
+</body>
+</html>
