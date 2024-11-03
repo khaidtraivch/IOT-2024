@@ -1,6 +1,43 @@
 let invoices = [];
+const ws = new WebSocket('ws://192.168.1.10:8765'); // Replace with the actual WebSocket server IP
 
-// Thêm hóa đơn mới
+ws.onopen = function() {
+    console.log('Connected to WebSocket server for invoice management');
+    fetchInvoices(); // Fetch initial invoice data on connection
+};
+
+ws.onmessage = function(event) {
+    const message = JSON.parse(event.data);
+
+    if (message.type === 'invoiceList') {
+        invoices = message.invoices;
+        renderInvoices(); // Render the fetched invoice list
+    } else if (message.type === 'invoiceAdded') {
+        invoices.push(message.invoice);
+        renderInvoices();
+    } else if (message.type === 'invoiceUpdated') {
+        const index = invoices.findIndex(inv => inv.invoiceId === message.invoice.invoiceId);
+        if (index !== -1) {
+            invoices[index] = message.invoice;
+            renderInvoices();
+        }
+    } else if (message.type === 'invoiceDeleted') {
+        invoices = invoices.filter(inv => inv.invoiceId !== message.invoiceId);
+        renderInvoices();
+    }
+};
+
+ws.onclose = function() {
+    console.log('Disconnected from WebSocket server');
+};
+
+// Fetch the initial list of invoices from the server
+function fetchInvoices() {
+    const request = JSON.stringify({ type: 'getInvoices' });
+    ws.send(request);
+}
+
+// Add a new invoice
 function addInvoice() {
     const invoiceId = document.getElementById('invoiceId').value;
     const customerName = document.getElementById('customerName').value;
@@ -12,15 +49,20 @@ function addInvoice() {
     }
 
     const newInvoice = { invoiceId, customerName, amount };
-    invoices.push(newInvoice);
-    renderInvoices();
+
+    // Send the new invoice to the server
+    ws.send(JSON.stringify({
+        type: 'addInvoice',
+        invoice: newInvoice
+    }));
+
     clearForm();
 }
 
-// Hiển thị danh sách hóa đơn
+// Display the invoice list in the table
 function renderInvoices() {
     const invoiceTable = document.getElementById('invoiceTable').getElementsByTagName('tbody')[0];
-    invoiceTable.innerHTML = ''; // Xóa nội dung cũ
+    invoiceTable.innerHTML = ''; // Clear old content
 
     invoices.forEach((invoice, index) => {
         const row = invoiceTable.insertRow();
@@ -29,7 +71,7 @@ function renderInvoices() {
         row.insertCell(1).innerText = invoice.customerName;
         row.insertCell(2).innerText = invoice.amount;
 
-        // Tạo các nút chỉnh sửa và xóa
+        // Create edit and delete buttons
         const actionCell = row.insertCell(3);
         actionCell.innerHTML = `
             <button onclick="editInvoice(${index})">Sửa</button>
@@ -38,20 +80,25 @@ function renderInvoices() {
     });
 }
 
-// Xóa hóa đơn
+// Delete an invoice
 function deleteInvoice(index) {
-    invoices.splice(index, 1);
-    renderInvoices();
+    const invoiceId = invoices[index].invoiceId;
+
+    // Send delete request to the server
+    ws.send(JSON.stringify({
+        type: 'removeInvoice',
+        invoiceId: invoiceId
+    }));
 }
 
-// Sửa hóa đơn
+// Edit an invoice
 function editInvoice(index) {
     const invoice = invoices[index];
     document.getElementById('invoiceId').value = invoice.invoiceId;
     document.getElementById('customerName').value = invoice.customerName;
     document.getElementById('amount').value = invoice.amount;
 
-    // Cập nhật nút thêm thành nút lưu
+    // Change the "Add" button to a "Save" button
     const submitButton = document.querySelector('#invoiceForm button');
     submitButton.textContent = 'Lưu thay đổi';
     submitButton.onclick = function () {
@@ -59,22 +106,32 @@ function editInvoice(index) {
     };
 }
 
-// Lưu thay đổi hóa đơn
+// Save changes to an edited invoice
 function saveInvoice(index) {
-    invoices[index].invoiceId = document.getElementById('invoiceId').value;
-    invoices[index].customerName = document.getElementById('customerName').value;
-    invoices[index].amount = document.getElementById('amount').value;
+    const updatedInvoice = {
+        invoiceId: document.getElementById('invoiceId').value,
+        customerName: document.getElementById('customerName').value,
+        amount: document.getElementById('amount').value
+    };
 
-    renderInvoices();
+    // Update the invoice in the local array
+    invoices[index] = updatedInvoice;
+
+    // Send the updated invoice to the server
+    ws.send(JSON.stringify({
+        type: 'updateInvoice',
+        invoice: updatedInvoice
+    }));
+
     clearForm();
 
-    // Đổi lại nút lưu thành nút thêm
+    // Change the "Save" button back to "Add"
     const submitButton = document.querySelector('#invoiceForm button');
     submitButton.textContent = 'Thêm hóa đơn';
     submitButton.onclick = addInvoice;
 }
 
-// Xóa các ô nhập liệu sau khi hoàn tất
+// Clear the input fields after completing an action
 function clearForm() {
     document.getElementById('invoiceId').value = '';
     document.getElementById('customerName').value = '';
