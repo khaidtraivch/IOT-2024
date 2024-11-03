@@ -1,214 +1,110 @@
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Parking Management System - Book & Pay</title>
-    <link rel="stylesheet" href="css/style.css">
-    <style>
-        /* Background Overlay */
-        body::before {
-            content: "";
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: -1;
-        }
+<script>
+    let ws;
 
-        /* General Text Styling */
-        h1, h2 {
-            color: #ffffff;
-            font-family: 'Roboto', sans-serif;
-            font-weight: 700;
-        }
+    // Khởi tạo WebSocket và thiết lập các sự kiện
+    function initWebSocket() {
+        ws = new WebSocket('ws://localhost:8765'); // Thay bằng IP server nếu cần
 
-        /* Container Styling */
-        .container {
-            text-align: center;
-            padding: 20px;
-            max-width: 800px;
-            margin: auto;
-            background-color: rgba(255, 255, 255, 0.9);
-            border-radius: 15px;
-        }
-
-        /* General Button Styling */
-        button {
-            padding: 12px 25px;
-            border: none;
-            border-radius: 25px;
-            font-size: 14px;
-            font-weight: 500;
-            color: white;
-            background: linear-gradient(145deg, #8ecae6, #219ebc);
-            transition: all 0.3s ease;
-            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
-            cursor: pointer;
-        }
-        
-        /* Button hover effect */
-        button:hover {
-            background: linear-gradient(145deg, #219ebc, #8ecae6);
-            transform: scale(1.05);
-        }
-
-        /* Form submit button styling */
-        #bookingForm button {
-            font-size: 16px;
-            padding: 14px 28px;
-            width: 100%;
-            margin-top: 20px;
-            background: linear-gradient(145deg, #0f9b0f, #00c853);
-        }
-
-        #bookingForm button:hover {
-            background: linear-gradient(145deg, #00c853, #0f9b0f);
-            transform: translateY(-2px);
-        }
-
-        /* RFID scan button styling */
-        .section-1 button {
-            background: linear-gradient(145deg, #ffb347, #ffcc33);
-            margin-top: 10px;
-        }
-
-        .section-1 button:hover {
-            background: linear-gradient(145deg, #ffcc33, #ffb347);
-            transform: translateY(-2px);
-        }
-
-        /* Form input fields styling */
-        input, select {
-            padding: 10px;
-            margin: 10px 0;
-            width: 100%;
-            border-radius: 10px;
-            border: 1px solid #219ebc;
-            box-sizing: border-box;
-        }
-
-        /* Status Messages */
-        #slotStatus, #rfidMessage {
-            font-size: 16px;
-            margin-top: 15px;
-            padding: 10px;
-            border-radius: 10px;
-            background-color: rgba(33, 158, 188, 0.1);
-            color: #023047;
-        }
-    </style>
-</head>
-<body>
-    <header>
-        <div class="container">
-            <div id="branding">			
-                <h1><span class="highlight">Parking</span> Succorer</h1>
-            </div>
-            <nav>
-                <ul>
-                    <li><a href="index.html">Home</a></li>
-                    <li><a href="about.html">About</a></li>
-                    <li class="current"><a href="booking.html">Book & Pay</a></li>
-                    <li><a href="invoice.html">Invoices</a></li>
-                    <button type="button" class="loginbtn" onclick="window.location.href = 'login.html';">Login</button>
-                    <button type="button" class="signupbtn" onclick="window.location.href = 'signup.html';">Signup</button>
-                </ul>
-            </nav>		  
-        </div>
-    </header>
-
-    <main class="section-1 box">
-        <h1>Book Your Parking Spot</h1>
-        <form id="bookingForm">
-            <label for="slot">Select Parking Slot:</label>
-            <select id="slot" name="slot">
-                <option value="1">Slot 1</option>
-                <option value="2">Slot 2</option>
-                <option value="3">Slot 3</option>
-                <option value="4">Slot 4</option>
-            </select>
-            <label for="startTime">Start Time:</label>
-            <input type="datetime-local" id="startTime" name="startTime" required>
-            <label for="endTime">End Time:</label>
-            <input type="datetime-local" id="endTime" name="endTime" required>
-            <button type="submit">Pay Now</button>
-        </form>
-
-        <h2>Parking Spot Status</h2>
-        <p id="slotStatus">Checking availability...</p>
-
-        <h2>Scan RFID Card to Enter</h2>
-        <button onclick="simulateRFIDScan()">Scan RFID Card</button>
-        <p id="rfidMessage"></p>
-    </main>
-
-    <footer class="footer text-center">
-        <div class="container">
-            <a href="https://www.facebook.com/" class="fa fa-facebook"></a>
-            <a href="https://twitter.com/" class="fa fa-twitter"></a>
-            <a href="https://www.google.com/" class="fa fa-google"></a>
-        </div>
-    </footer>
-
-    <script>
-        // Set up WebSocket connection
-        const ws = new WebSocket('ws://192.168.1.10:8765'); // Replace with ESP32 WebSocket server IP
-
-        // Handle WebSocket connection opening
+        // Sự kiện mở kết nối WebSocket
         ws.onopen = function() {
             console.log('Connected to WebSocket server');
             document.getElementById('slotStatus').innerText = "Connected to server.";
         };
 
-        // Handle incoming WebSocket messages
+        // Xử lý tin nhắn từ server
         ws.onmessage = function(event) {
             const message = JSON.parse(event.data);
 
-            if (message.type === 'slotStatus') {
+            if (message.type === 'parkingStatus') {
+                // Cập nhật trạng thái chỗ đỗ xe
                 document.getElementById('slotStatus').innerText = `Slot ${message.slot}: ${message.status}`;
             } else if (message.type === 'rfidStatus') {
+                // Hiển thị trạng thái RFID
                 document.getElementById('rfidMessage').innerText = message.message;
+            } else if (message.type === 'bookingConfirmation') {
+                // Hiển thị xác nhận đặt chỗ
+                document.getElementById('slotStatus').innerText = `Booking confirmed for Slot ${message.slot} from ${message.startTime} to ${message.endTime}`;
+            } else if (message.type === 'error') {
+                // Xử lý và hiển thị lỗi từ server
+                console.error("Error from server:", message.message);
+                document.getElementById('slotStatus').innerText = `Error: ${message.message}`;
             }
         };
 
-        // Handle WebSocket disconnection
+        // Xử lý ngắt kết nối WebSocket
         ws.onclose = function() {
             console.log('Disconnected from WebSocket server');
-            document.getElementById('slotStatus').innerText = "Disconnected from server.";
+            document.getElementById('slotStatus').innerText = "Disconnected from server. Attempting to reconnect...";
+
+            // Thử kết nối lại sau 3 giây nếu bị ngắt
+            setTimeout(() => {
+                document.getElementById('slotStatus').innerText = "Reconnecting...";
+                reconnectWebSocket();
+            }, 3000);
         };
 
-        // Handle booking form submission
-        document.getElementById("bookingForm").onsubmit = function(event) {
-            event.preventDefault();
-            const slot = document.getElementById("slot").value;
-            const startTime = document.getElementById("startTime").value;
-            const endTime = document.getElementById("endTime").value;
-
-            console.log("Booking Slot:", slot, "from", startTime, "to", endTime);
-
-            // Send booking information via WebSocket
-            const bookingData = JSON.stringify({
-                type: 'booking',
-                slot: slot,
-                startTime: startTime,
-                endTime: endTime
-            });
-
-            ws.send(bookingData);
-            document.getElementById('slotStatus').innerText = "Booking submitted. Waiting for confirmation...";
+        // Xử lý lỗi kết nối WebSocket
+        ws.onerror = function(error) {
+            console.error('WebSocket error:', error);
         };
+    }
 
-        // Simulate RFID scan
-        function simulateRFIDScan() {
-            document.getElementById("rfidMessage").innerText = "RFID card scanned successfully!";
-            
-            // Send RFID scan request via WebSocket
-            const rfidRequest = JSON.stringify({ type: 'rfidScanRequest' });
-            ws.send(rfidRequest);
+    // Hàm kết nối lại WebSocket
+    function reconnectWebSocket() {
+        if (ws.readyState !== WebSocket.OPEN && ws.readyState !== WebSocket.CONNECTING) {
+            initWebSocket();
         }
-    </script>
-</body>
-</html>
+    }
+
+    // Gửi dữ liệu WebSocket với kiểm tra kết nối
+    function sendWebSocketMessage(data) {
+        if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify(data));
+        } else {
+            console.error('WebSocket is not open. Message not sent:', data);
+            document.getElementById('slotStatus').innerText = "Unable to send message. WebSocket not connected.";
+        }
+    }
+
+    // Gửi yêu cầu đặt chỗ
+    function submitBooking(event) {
+        event.preventDefault();
+        const slot = document.getElementById('slot').value;
+        const startTime = document.getElementById('startTime').value;
+        const endTime = document.getElementById('endTime').value;
+
+        const bookingData = {
+            type: 'booking',
+            slot: slot,
+            startTime: startTime,
+            endTime: endTime
+        };
+
+        sendWebSocketMessage(bookingData);
+        document.getElementById('slotStatus').innerText = "Booking submitted. Waiting for confirmation...";
+    }
+
+    // Gửi yêu cầu quét RFID
+    function requestRFIDScan() {
+        const rfidRequest = { type: 'rfidScanRequest' };
+        sendWebSocketMessage(rfidRequest);
+        document.getElementById('rfidMessage').innerText = "Please scan your RFID card...";
+    }
+
+    // Gửi yêu cầu cập nhật trạng thái chỗ đỗ
+    function updateParkingStatus(slot, status) {
+        const statusUpdate = {
+            type: 'update_status',
+            slot: slot,
+            status: status
+        };
+
+        sendWebSocketMessage(statusUpdate);
+        document.getElementById('slotStatus').innerText = `Updating status for Slot ${slot} to ${status}...`;
+    }
+
+    // Khởi tạo WebSocket khi tải trang
+    window.onload = function() {
+        initWebSocket();
+    };
+</script>

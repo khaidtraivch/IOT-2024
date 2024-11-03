@@ -1,31 +1,39 @@
 import asyncio
 import websockets
 import json
+from datetime import datetime
 
-# Define the server IP and port
-SERVER_HOST = '0.0.0.0'
+# Địa chỉ và cổng server
+SERVER_HOST = '0.0.0.0'  # Lắng nghe tất cả các IP trên máy chủ
 SERVER_PORT = 8765
 
-# Maintain a list of connected clients for broadcasting updates
+# Danh sách các client kết nối để phát dữ liệu
 clients = set()
 
-# Store invoice and parking status data
+# Dữ liệu hóa đơn và trạng thái chỗ đỗ xe
 invoices = []
 parking_spots = {"1": "available", "2": "available", "3": "available", "4": "available"}
 
-# Function to broadcast data to all connected clients
-async def broadcast(data):
-    if clients:  # Only attempt broadcast if there are clients
-        message = json.dumps(data)
-        await asyncio.wait([client.send(message) for client in clients])
+# Danh sách ID RFID hợp lệ
+authorized_ids = {
+    "123456789": "Alice",
+    "987654321": "Bob",
+}
 
-# Function to handle WebSocket connections
+# Hàm phát dữ liệu đến tất cả client
+async def broadcast(data):
+    if clients:
+        message = json.dumps(data)
+        # Sử dụng asyncio.create_task để tạo các task từ coroutine
+        await asyncio.wait([asyncio.create_task(client.send(message)) for client in clients])
+
+# Hàm xử lý kết nối WebSocket
 async def handle_connection(websocket, path):
     print("New connection established")
-    clients.add(websocket)  # Add client to the set
+    clients.add(websocket)
 
     try:
-        # Send initial data to the client
+        # Gửi dữ liệu ban đầu về trạng thái bãi đỗ và hóa đơn
         await websocket.send(json.dumps({"type": "parkingStatus", "spots": parking_spots}))
         await websocket.send(json.dumps({"type": "invoiceList", "invoices": invoices}))
 
@@ -33,33 +41,59 @@ async def handle_connection(websocket, path):
             print(f"Received message: {message}")
             data = json.loads(message)
 
-            # Handle messages based on action
-            if data['type'] == 'update_status':
-                # ESP32 updates parking spot status
-                parking_spots[data['slot']] = data['status']
-                await broadcast({"type": "parkingStatus", "spots": parking_spots})
+            # Xử lý các loại yêu cầu từ client
+            if data['type'] == 'booking':
+                slot = data['slot']
+                start_time = data['startTime']
+                end_time = data['endTime']
+                
+                # Kiểm tra trạng thái chỗ đỗ trước khi đặt chỗ
+                if parking_spots[slot] == "available":
+                    parking_spots[slot] = "occupied"  # Đặt trạng thái chỗ đỗ thành "occupied"
+                    response = {
+                        "type": "bookingConfirmation",
+                        "slot": slot,
+                        "startTime": start_time,
+                        "endTime": end_time,
+                        "status": "confirmed"
+                    }
+                    await websocket.send(json.dumps(response))
+                    
+                    # Phát lại cập nhật trạng thái chỗ đỗ cho tất cả client
+                    await broadcast({"type": "parkingStatus", "slot": slot, "status": "occupied"})
+                    print(f"Booking confirmed for Slot {slot}")
+                else:
+                    await websocket.send(json.dumps({
+                        "type": "error",
+                        "message": f"Slot {slot} is already occupied."
+                    }))
 
-            elif data['type'] == 'rfidScan':
-                # Process RFID data and broadcast the result
-                user = data.get('user', 'Unknown User')
-                await broadcast({"type": "rfidStatus", "message": f"RFID scanned for {user}"})
+            elif data['type'] == 'rfidScanRequest':
+                rfid_id = "123456789"  # Giả lập RFID ID nhận được
+                user = authorized_ids.get(rfid_id)
+                
+                if user:
+                    response = {
+                        "type": "rfidStatus",
+                        "message": f"Welcome, {user}! Access granted.",
+                        "status": "Door opened"
+                    }
+                else:
+                    response = {
+                        "type": "rfidStatus",
+                        "message": "Access denied. Unauthorized RFID card.",
+                        "status": "Door closed"
+                    }
+                
+                await websocket.send(json.dumps(response))
+                print("RFID scan processed")
 
-            elif data['type'] == 'addInvoice':
-                # Add a new invoice to the list and broadcast update
-                invoices.append(data['invoice'])
-                await broadcast({"type": "invoiceAdded", "invoice": data['invoice']})
-
-            elif data['type'] == 'removeInvoice':
-                # Remove an invoice by ID and broadcast update
-                invoice_id = data['invoiceId']
-                invoices[:] = [inv for inv in invoices if inv["id"] != invoice_id]
-                await broadcast({"type": "invoiceDeleted", "invoiceId": invoice_id})
-
-            elif data['type'] == 'getInvoices':
-                # Send the current invoice list to the requester
-                await websocket.send(json.dumps({"type": "invoiceList", "invoices": invoices}))
-
-            print("Data processed and broadcasted")
+            elif data['type'] == 'update_status':
+                slot = data['slot']
+                status = data['status']
+                parking_spots[slot] = status
+                await broadcast({"type": "parkingStatus", "slot": slot, "status": status})
+                print(f"Parking slot {slot} updated to {status}")
 
     except websockets.ConnectionClosed as e:
         print(f"Connection closed: {e}")
@@ -67,11 +101,14 @@ async def handle_connection(websocket, path):
         clients.remove(websocket)
         print("Connection removed")
 
-# Main entry point for WebSocket server
+# Điểm vào chính của server WebSocket
 async def main():
     async with websockets.serve(handle_connection, SERVER_HOST, SERVER_PORT):
         print(f"WebSocket server running on ws://{SERVER_HOST}:{SERVER_PORT}")
-        await asyncio.Future()  # Keep the server running
+        await asyncio.Future()
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except Exception as e:
+        print(f"Server encountered an error: {e}")
