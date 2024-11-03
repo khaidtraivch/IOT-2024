@@ -1,62 +1,54 @@
 <script>
     let ws;
 
-    // Khởi tạo WebSocket và thiết lập các sự kiện
+    // Initialize WebSocket and set up events
     function initWebSocket() {
-        ws = new WebSocket('ws://localhost:8765'); // Thay bằng IP server nếu cần
+        ws = new WebSocket('ws://localhost:8765'); // Change to server IP if needed
 
-        // Sự kiện mở kết nối WebSocket
         ws.onopen = function() {
             console.log('Connected to WebSocket server');
             document.getElementById('slotStatus').innerText = "Connected to server.";
         };
 
-        // Xử lý tin nhắn từ server
+        // Handle messages from the server
         ws.onmessage = function(event) {
             const message = JSON.parse(event.data);
 
             if (message.type === 'parkingStatus') {
-                // Cập nhật trạng thái chỗ đỗ xe
                 document.getElementById('slotStatus').innerText = `Slot ${message.slot}: ${message.status}`;
             } else if (message.type === 'rfidStatus') {
-                // Hiển thị trạng thái RFID
                 document.getElementById('rfidMessage').innerText = message.message;
             } else if (message.type === 'bookingConfirmation') {
-                // Hiển thị xác nhận đặt chỗ
-                document.getElementById('slotStatus').innerText = `Booking confirmed for Slot ${message.slot} from ${message.startTime} to ${message.endTime}`;
+                document.getElementById('slotStatus').innerText = `Booking confirmed for Slot ${message.slot} from ${message.startTime} to ${message.endTime}. Total Cost: $${message.cost}`;
+            } else if (message.type === 'availabilityStatus') {
+                document.getElementById('slotStatus').innerText = `Slot ${message.slot} is ${message.status}.`;
             } else if (message.type === 'error') {
-                // Xử lý và hiển thị lỗi từ server
                 console.error("Error from server:", message.message);
                 document.getElementById('slotStatus').innerText = `Error: ${message.message}`;
             }
         };
 
-        // Xử lý ngắt kết nối WebSocket
         ws.onclose = function() {
             console.log('Disconnected from WebSocket server');
             document.getElementById('slotStatus').innerText = "Disconnected from server. Attempting to reconnect...";
-
-            // Thử kết nối lại sau 3 giây nếu bị ngắt
             setTimeout(() => {
                 document.getElementById('slotStatus').innerText = "Reconnecting...";
                 reconnectWebSocket();
             }, 3000);
         };
 
-        // Xử lý lỗi kết nối WebSocket
         ws.onerror = function(error) {
             console.error('WebSocket error:', error);
         };
     }
 
-    // Hàm kết nối lại WebSocket
     function reconnectWebSocket() {
         if (ws.readyState !== WebSocket.OPEN && ws.readyState !== WebSocket.CONNECTING) {
             initWebSocket();
         }
     }
 
-    // Gửi dữ liệu WebSocket với kiểm tra kết nối
+    // Send WebSocket message with connection check
     function sendWebSocketMessage(data) {
         if (ws.readyState === WebSocket.OPEN) {
             ws.send(JSON.stringify(data));
@@ -66,7 +58,27 @@
         }
     }
 
-    // Gửi yêu cầu đặt chỗ
+    // Check slot availability
+    function checkAvailability() {
+        const slot = document.getElementById('slot').value;
+        sendWebSocketMessage({ type: 'checkAvailability', slot: slot });
+    }
+
+    // Calculate estimated cost
+    function calculateCost() {
+        const startTime = document.getElementById('startTime').value;
+        const endTime = document.getElementById('endTime').value;
+
+        if (startTime && endTime) {
+            const durationHours = (new Date(endTime) - new Date(startTime)) / 3600000;
+            const hourlyRate = 5.0; // Replace with actual hourly rate
+            const estimatedCost = (durationHours * hourlyRate).toFixed(2);
+
+            document.getElementById('costEstimate').innerText = `Estimated Cost: $${estimatedCost}`;
+        }
+    }
+
+    // Submit booking request
     function submitBooking(event) {
         event.preventDefault();
         const slot = document.getElementById('slot').value;
@@ -84,14 +96,14 @@
         document.getElementById('slotStatus').innerText = "Booking submitted. Waiting for confirmation...";
     }
 
-    // Gửi yêu cầu quét RFID
+    // Request RFID scan
     function requestRFIDScan() {
         const rfidRequest = { type: 'rfidScanRequest' };
         sendWebSocketMessage(rfidRequest);
         document.getElementById('rfidMessage').innerText = "Please scan your RFID card...";
     }
 
-    // Gửi yêu cầu cập nhật trạng thái chỗ đỗ
+    // Update parking slot status
     function updateParkingStatus(slot, status) {
         const statusUpdate = {
             type: 'update_status',
@@ -103,7 +115,7 @@
         document.getElementById('slotStatus').innerText = `Updating status for Slot ${slot} to ${status}...`;
     }
 
-    // Khởi tạo WebSocket khi tải trang
+    // Initialize WebSocket on page load
     window.onload = function() {
         initWebSocket();
     };

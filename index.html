@@ -1,162 +1,121 @@
 <!DOCTYPE html>
-<html lang="vi">
-<head>
+<html>
+  <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Hệ thống đỗ xe thông minh">
-    <meta name="keywords" content="thông minh, quản lý đỗ xe, iot, hệ thống đỗ xe thông minh">
-    <title>Parking Succorer | Book & Pay</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-</head>
-<body>
-    <!-- Header -->
+    <meta name="viewport" content="width=device-width">
+    <meta name="description" content="smart parking system">
+	<meta name="keywords" content="smart, parking management,iot, smart parking system">
+    <title>Parking Succorer | Welcome</title>
+	<link rel="stylesheet" href="css/style.css">
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+
+
+  </head>
+  <body>
     <header>
-        <div class="container">
-            <div id="branding">			
-                <h1><span class="highlight">Parking</span> Succorer</h1>
-            </div>
-            <nav class="navbar navbar-expand-lg navbar-light bg-light">
-                <a class="navbar-brand" href="{{ url_for('index') }}">Parking Succorer</a>
-                <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="collapse navbar-collapse" id="navbarNav">
-                    <ul class="navbar-nav">
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('index') }}">Trang chủ</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('about') }}">Giới thiệu</a>
-                        </li>
-                        <li class="nav-item active">
-                            <a class="nav-link" href="{{ url_for('booking') }}">Đặt & Thanh toán</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('invoice') }}">Hóa đơn</a>
-                        </li>
-                    </ul>
-                    <button type="button" class="btn btn-outline-success ml-auto" onclick="window.location.href = '{{ url_for('login') }}';">Đăng nhập</button>
-                    <button type="button" class="btn btn-outline-primary ml-2" onclick="window.location.href = '{{ url_for('signup') }}';">Đăng ký</button>
-                </div>
-            </nav>
+      <div class="container">
+        <div id="branding">
+			
+          <h1><span class="highlight">  Parking</span> Succorer</h1>
         </div>
-    </header>
+        <nav>
+          <ul>
+            <li class="current"><a href="index.html">Home</a></li>
+			<li><a href="about.html">About</a></li>
+			<button type="button" class="loginbtn" onclick="window.location.href = 'login.html';">Login</button>
+			<button type="button" class="signupbtn" onclick="window.location.href = 'signup.html';">Signup</button>
+          </ul>
+        </nav>
+      </div>
+	</header>
+	
+<div class="section-1 box">
+	<h1>Smart way to park. </h1>
+	<h2>Park.Pay.<br>Be On Your Way.</h2>
+	
+</div>
 
-    <!-- Main Content (Styled Section) -->
-    <main class="section-1 box">
-        <div class="container">
-            <h1>Đặt Chỗ Đỗ Xe</h1>
-            <form id="bookingForm">
-                <div class="form-group">
-                    <label for="slot">Chọn chỗ đỗ xe:</label>
-                    <select id="slot" name="slot" class="form-control">
-                        <option value="1">Chỗ 1</option>
-                        <option value="2">Chỗ 2</option>
-                        <option value="3">Chỗ 3</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="startTime">Thời gian bắt đầu:</label>
-                    <input type="datetime-local" id="startTime" name="startTime" class="form-control" required>
-                </div>
-                <div class="form-group">
-                    <label for="endTime">Thời gian kết thúc:</label>
-                    <input type="datetime-local" id="endTime" name="endTime" class="form-control" required>
-                </div>
-                <button type="submit" class="btn btn-primary">Thanh toán ngay</button>
-            </form>
+<div class="section-2 box">
 
-            <h2>Quét Thẻ RFID Để Vào</h2>
-            <button class="btn btn-secondary" onclick="simulateRFIDScan()">Quét Thẻ RFID</button>
-            <p id="rfidMessage"></p>
-        </div>
-    </main>
+	<h1>Features</h1>
+	<hr>
 
-    <div class="section-2 box">
-        <div class="container">
-            <h1>Chức Năng Nổi Bật</h1>
-            <hr>
-            <section id="boxes" class="row">
-                <div class="col-md-4">
-                    <div class="part">
-                        <img src="images/shutterstock_733419691-1-150x150.jpg" alt="Secured Payment">
-                        <h3>THANH TOÁN AN TOÀN</h3>
-                        <p>Cung cấp tùy chọn đặt chỗ trước và thanh toán trực tuyến qua cổng thanh toán tích hợp hoặc cho phép giao dịch tiền mặt tại cổng.</p>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="part">
-                        <img src="images/shutterstock_1025093167-150x150.jpg" alt="Revenue Report">
-                        <h3>BÁO CÁO DOANH THU</h3>
-                        <p>Xem lịch sử bãi đỗ của tất cả tài sản của bạn theo ngày hoặc theo tài sản. Bạn có thể thấy báo cáo trực tuyến ngắn gọn về tất cả các chỗ đỗ.</p>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="part">
-                        <img src="images/shutterstock_198983660-150x150.jpg" alt="Waiting List">
-                        <h3>Danh Sách Chờ</h3>
-                        <p>Cho phép khách hàng thêm xe của họ vào danh sách chờ cho một ngày hoặc tháng cụ thể, và gửi thông báo khi có chỗ trống.</p>
-                    </div>
-                </div>
-            </section>
-        </div>
-    </div>
+		<section id="boxes">
+			<div class="container">
+			  <div class="part">
+				<img src="images/shutterstock_733419691-1-150x150.jpg">
+				<h3>SECURED PAYMENT</h3>
+				<p>Give the option to pre-book a space and pay online with our integrated payment portal or allow monetary transactions at the gate</p>
+			  </div>
+			  <div class="part">
+				<img src="images/shutterstock_1025093167-150x150.jpg">
+				<h3>REVENUE REPORT</h3>
+			<P>Get the parking lot history of all your properties by date or by property. You will be able to see a brief online report of all spots.
 
-    <div class="section-3 box">
-        <div class="container">
-            <h1>Còn chờ gì nữa?</h1>
-            <h3>Đặt chỗ đỗ xe của bạn ngay hôm nay.</h3>
-            <button type="button" class="learnmorebtn btn btn-info">Tìm hiểu thêm</button>
-        </div>
-    </div>
+				</P>
+			</div>
+			  <div class="part">
+				<img src="images/shutterstock_198983660-150x150.jpg">
+				<h3>WAITING LIST</h3>
+				<p>Let customers add their car to the waiting list for a specific day or month, and send them notifications when a lot becomes available.
 
-    <div class="row">
-        <div class="column">
-            <div class="img-text">
-                <h2>Đang tìm chỗ ngay bây giờ? Parking Succorer đưa quyền lực vào tay bạn.</h2>				
-                <img src="images/businessman-hand-holding-mobile-phone-with-car-icon.jpg" alt="Mobile App" style="width:100%">
-            </div>
-            <div class="img-text">
-                <h2>Giúp bạn dễ dàng lên kế hoạch di chuyển mà không lo về chỗ đỗ xe.</h2>
-                <img src="images/eyeem-124641352.jpg" alt="Plan Your Ride" style="width:100%">
-            </div>
-        </div>
-        <div class="column">
-            <div class="img-text">
-                <h2>Xem chi tiết đầy đủ về các tùy chọn đỗ xe và chọn chỗ của bạn.</h2>
-                <img src="images/mulher-sentada-carro-digitando-celular-aplicativos-mapas-localização.jpg" alt="Select Your Lot" style="width:100%">
-            </div>
-            <div class="img-text">
-                <h2>Đỗ xe của bạn tại chỗ đỗ trên phố hoặc ngoài đường.</h2>
-                <img src="images/portrait-art-blue.jpg" alt="On-Street Parking" style="width:100%">
-            </div>
-        </div>
-    </div>
+				</p>
+			  </div>
+			</div>
+		  </section>
 
-    <div class="section-4 box">
-        <div class="vertical-menu">
-            <a href="{{ url_for('index') }}" class="active">Trang chủ</a>
-            <a href="{{ url_for('about') }}">Giới thiệu</a>
-            <a href="#">Cách thức hoạt động</a>
-            <a href="#">Giúp đỡ</a>
-            <a href="#">Liên hệ với chúng tôi</a>
-        </div>
-    </div>
+</div>
 
-    <!-- Footer -->
-    <footer class="footer text-center">
-        <div class="container">
-            <a href="https://www.facebook.com/" class="fa fa-facebook"></a>
-            <a href="https://twitter.com/" class="fa fa-twitter"></a>
-            <a href="https://www.google.com/" class="fa fa-google"></a>
-        </div>
-    </footer>
+<div class="section-3 box">
+	<h1>What are you waiting for?</h1>
+	<h3>Book your parking spot in advance.</h3>
+	<button type="button" class="learnmorebtn">Learn More</button>
+</div>
+<div class= "row">
+		<div class= "column">
+				<div class= img-text>
+				<h2>Looking for a spot in the moment?Parking Succorer puts the power in the palm of your hand.</h2>				
+				<img src="images/businessman-hand-holding-mobile-phone-with-car-icon.jpg" style="width:100%">
+				</div>
+				<div class="img-text">
+				<h2>Making it easier to plan a ride and get around town without worrying about where to park your bike.</h2>
+				<img src="images/eyeem-124641352.jpg" style="width:100%">
+				</div>
+	
+		</div>
+		<div class="column">
+			<div class="img-text">
+				<h2>Review full details of parking options available and select your lot.</h2>
+				<img src="images/mulher-sentada-carro-digitando-celular-aplicativos-mapas-localização.jpg" style="width:100%">
+			</div>
+				
+				<div class="img-text">
+					<h2>Park your car in an on- or off-street parking spot.</h2>
+					<img src="images/portrait-art-blue.jpg" style="width:100%">
+				</div>
+				
+	
+	
+		</div>
+<div class="section-4 box">
+		<div class="vertical-menu">
+				<a href="index.html" class="active">Home</a>
+				<a href="about.html">About</a>
+				<a href="#">How it works</a>
+				<a href="#">Help</a>
+				<a href="#">Contact Us</a>
+		</div>
+	
+		
+</div>
 
-    <script src="{{ url_for('static', filename='js/scripts.js') }}"></script>
+</div>
+<div class="footer">
+		<a href="https://www.facebook.com/" class="fa fa-facebook"></a>
+		<a href="https://twitter.com/" class="fa fa-twitter"></a>
+		<a href="https://www.google.com/" class="fa fa-google"></a>
+</div>
+
+
 </body>
 </html>

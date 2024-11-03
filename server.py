@@ -3,37 +3,39 @@ import websockets
 import json
 from datetime import datetime
 
-# Địa chỉ và cổng server
-SERVER_HOST = '0.0.0.0'  # Lắng nghe tất cả các IP trên máy chủ
+# Server address and port
+SERVER_HOST = '0.0.0.0'  # Listening on all IPs on the server
 SERVER_PORT = 8765
 
-# Danh sách các client kết nối để phát dữ liệu
+# Connected clients for broadcasting data
 clients = set()
 
-# Dữ liệu hóa đơn và trạng thái chỗ đỗ xe
+# Invoice data and parking slot status
 invoices = []
 parking_spots = {"1": "available", "2": "available", "3": "available", "4": "available"}
 
-# Danh sách ID RFID hợp lệ
+# List of authorized RFID IDs
 authorized_ids = {
     "123456789": "Alice",
     "987654321": "Bob",
 }
 
-# Hàm phát dữ liệu đến tất cả client
+# Pricing information
+pricing_per_hour = 5.0  # Define hourly rate in your local currency
+
+# Function to broadcast data to all clients
 async def broadcast(data):
     if clients:
         message = json.dumps(data)
-        # Sử dụng asyncio.create_task để tạo các task từ coroutine
         await asyncio.wait([asyncio.create_task(client.send(message)) for client in clients])
 
-# Hàm xử lý kết nối WebSocket
+# WebSocket connection handler
 async def handle_connection(websocket, path):
     print("New connection established")
     clients.add(websocket)
 
     try:
-        # Gửi dữ liệu ban đầu về trạng thái bãi đỗ và hóa đơn
+        # Send initial data about parking status and invoices
         await websocket.send(json.dumps({"type": "parkingStatus", "spots": parking_spots}))
         await websocket.send(json.dumps({"type": "invoiceList", "invoices": invoices}))
 
@@ -41,27 +43,54 @@ async def handle_connection(websocket, path):
             print(f"Received message: {message}")
             data = json.loads(message)
 
-            # Xử lý các loại yêu cầu từ client
+            # Handle booking request
             if data['type'] == 'booking':
                 slot = data['slot']
-                start_time = data['startTime']
-                end_time = data['endTime']
+                start_time = datetime.fromisoformat(data['startTime'])
+                end_time = datetime.fromisoformat(data['endTime'])
                 
-                # Kiểm tra trạng thái chỗ đỗ trước khi đặt chỗ
+                # Check parking slot availability
                 if parking_spots[slot] == "available":
-                    parking_spots[slot] = "occupied"  # Đặt trạng thái chỗ đỗ thành "occupied"
-                    response = {
-                        "type": "bookingConfirmation",
-                        "slot": slot,
-                        "startTime": start_time,
-                        "endTime": end_time,
-                        "status": "confirmed"
-                    }
-                    await websocket.send(json.dumps(response))
+                    # Calculate total cost
+                    duration_hours = (end_time - start_time).total_seconds() / 3600
+                    total_cost = round(duration_hours * pricing_per_hour, 2)
                     
-                    # Phát lại cập nhật trạng thái chỗ đỗ cho tất cả client
-                    await broadcast({"type": "parkingStatus", "slot": slot, "status": "occupied"})
-                    print(f"Booking confirmed for Slot {slot}")
+                    # Simulate payment processing (you would integrate an actual payment gateway here)
+                    payment_status = "successful"  # Simulate a successful payment
+
+                    if payment_status == "successful":
+                        parking_spots[slot] = "occupied"  # Set slot status to "occupied"
+                        
+                        # Generate invoice and store
+                        invoice = {
+                            "slot": slot,
+                            "startTime": data['startTime'],
+                            "endTime": data['endTime'],
+                            "cost": total_cost,
+                            "status": "paid"
+                        }
+                        invoices.append(invoice)
+
+                        # Send booking confirmation to the user
+                        response = {
+                            "type": "bookingConfirmation",
+                            "slot": slot,
+                            "startTime": data['startTime'],
+                            "endTime": data['endTime'],
+                            "cost": total_cost,
+                            "status": "confirmed",
+                            "rfidAccessGranted": True  # Grant RFID access
+                        }
+                        await websocket.send(json.dumps(response))
+                        
+                        # Broadcast parking status update to all clients
+                        await broadcast({"type": "parkingStatus", "slot": slot, "status": "occupied"})
+                        print(f"Booking confirmed and payment processed for Slot {slot}")
+                    else:
+                        await websocket.send(json.dumps({
+                            "type": "error",
+                            "message": "Payment failed. Please try again."
+                        }))
                 else:
                     await websocket.send(json.dumps({
                         "type": "error",
@@ -69,7 +98,7 @@ async def handle_connection(websocket, path):
                     }))
 
             elif data['type'] == 'rfidScanRequest':
-                rfid_id = "123456789"  # Giả lập RFID ID nhận được
+                rfid_id = "123456789"  # Simulate received RFID ID
                 user = authorized_ids.get(rfid_id)
                 
                 if user:
@@ -101,11 +130,11 @@ async def handle_connection(websocket, path):
         clients.remove(websocket)
         print("Connection removed")
 
-# Điểm vào chính của server WebSocket
+# WebSocket server main entry point
 async def main():
     async with websockets.serve(handle_connection, SERVER_HOST, SERVER_PORT):
         print(f"WebSocket server running on ws://{SERVER_HOST}:{SERVER_PORT}")
-        await asyncio.Future()
+        await asyncio.Future()  # Run forever
 
 if __name__ == "__main__":
     try:
